@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "hellofabric",
+  "version": "1.0.0",
+  "name": "Endpoem",
+  "icon": "icon.png",
+  "description": "Adds /endpoem command to replay the End Poem.",
+  "authors": [
+    "gta66666668"
+  ],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "io.github.niubima.hellofabric.HelloFabric"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.17.0",
+    "minecraft": "1.21.8",
+    "java": ">=21"
+  }
+}
