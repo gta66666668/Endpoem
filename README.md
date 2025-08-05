@@ -31,7 +31,6 @@ Replay the End Poem anywhere, in any dimension or game mode by typing `/endpoem`
 ## 安装 │ Installation
 
 ### 先决条件 │ Prerequisites  
-- Minecraft **1.21.8**  
 - Fabric Loader **≥0.17.0**  
 - Fabric API **≥0.130.0**  
 
@@ -44,9 +43,7 @@ Replay the End Poem anywhere, in any dimension or game mode by typing `/endpoem`
 
 ## 配置 │ Configuration  
 - **禁用翻译资源包**：  
-  打开「资源包（Resource Packs）」界面，取消勾选 “EndPoem Translation Pack”。  
-- **修改命令前缀**：  
-  如果想改命令（默认 `/endpoem`），请编辑 `fabric.mod.json` 中的 `entrypoints` 或自行编译时修改代码。
+  打开「资源包（Resource Packs）」界面，取消勾选  
 
 ---
 
@@ -58,4 +55,3 @@ This project is licensed under the **MIT License**.
 
 感谢使用 **EndPoem 重放 & 中文翻译 Mod**，祝你游戏愉快！  
 Thank you for using **EndPoem Replay & Chinese Translation Mod**—have fun!  
-```0
