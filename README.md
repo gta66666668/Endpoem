@@ -32,13 +32,17 @@ Replay the End Poem anywhere, in any dimension or game mode by typing `/endpoem`
 
 ### 先决条件 │ Prerequisites  
 - Fabric Loader **≥0.17.0**  
-- Fabric API **≥0.130.0**  
-
+- Fabric API **≥0.130.0**
+   
 ### 步骤 │ Steps  
-1. 下载最新版 JAR：[Releases · gta66666668/Endpoem](https://github.com/gta66666668/Endpoem/releases)  
-2. 将jar文件放入你的 `.minecraft/mods/` 目录  
-3. 启动游戏，进入世界后输入 `/endpoem`  
+1. 下载最新版 JAR：  
+   下载链接：[Releases · gta66666668/Endpoem](https://github.com/gta66666668/Endpoem/releases)  
+   Download the latest JAR from: [Releases · gta66666668/Endpoem](https://github.com/gta66666668/Endpoem/releases)  
 
+2. 放入 mods 目录：  
+   将下载好的jar放到你`.minecraft/mods/` 目录下  
+   Place the downloaded jar into your `.minecraft/mods/` folder
+   
 ---
 
 ## 配置 │ Configuration  
