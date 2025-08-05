@@ -46,7 +46,7 @@ Replay the End Poem anywhere, in any dimension or game mode by typing `/endpoem`
 ---
 
 ## 配置 │ Configuration  
--**禁用翻译资源包|“Disable the translation resource pack**
+**禁用翻译资源包|“Disable the translation resource pack**
 
 打开「资源包（Resource Packs）」界面，取消勾选"hellofabric/chinese_end_poem"
   
