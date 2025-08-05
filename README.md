@@ -36,7 +36,7 @@ Replay the End Poem anywhere, in any dimension or game mode by typing `/endpoem`
 
 ### 步骤 │ Steps  
 1. 下载最新版 JAR：[Releases · gta66666668/Endpoem](https://github.com/gta66666668/Endpoem/releases)  
-2. 将 `EndPoem-1.0.0.jar` 放入你的 `.minecraft/mods/` 目录  
+2. 将jar文件放入你的 `.minecraft/mods/` 目录  
 3. 启动游戏，进入世界后输入 `/endpoem`  
 
 ---
