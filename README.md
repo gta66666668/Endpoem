@@ -1,65 +1,61 @@
-# EndPoem 重放 & 中文翻译 Mod  
-**EndPoem Replay & Chinese Translation Mod**
 
-让你随时重温 Minecraft 结局诗篇，并附带中文翻译与双语制作名单  
-Rewatch the Minecraft End Poem at any time, complete with Chinese translation and bilingual credits list.
+# 中文（简体）
 
----
+**EndPoem 重放 & 中文翻译**
+随时重看《Minecraft 终末之诗》，~~并附中文译文与双语制作人员名单。~~
 
-## 简介 │ Description  
-在任意维度、任意模式下，通过 `/endpoem` 命令立即重放终末之诗（End Poem），并默认加载中文翻译资源包。  
-Replay the End Poem anywhere, in any dimension or game mode by typing `/endpoem`; includes a built-in resource pack for Chinese translation.
+## 主要功能
 
----
+* **一键重放**：在聊天框输入 **`/endpoem`**，可在**任意维度、任意游戏模式**下重放终末之诗。
+* **命令选择器支持**：使用 **`/endpoem <目标>`** 指定播放对象，兼容 **`@p`**、**`@a`**、**`@s`**、**`@r`** 及玩家名。
 
-## 功能 │ Features  
-1. **/endpoem 重放终末之诗**  
-   - 在聊天框输入：  
-     ```
-     /endpoem
-     ```  
-   - 立即重播终末之诗及结尾制作名单  
-   Type `/endpoem` in chat to instantly replay the End Poem and credits list.
+  * 示例：`/endpoem @p`、`/endpoem @a`、`/endpoem 玩家名`
+* **内置中文翻译**：终末之诗~~与结尾制作人员名单~~已翻译为中文并默认启用；如需英文原文，请前往 **设置 → 资源包** 取消勾选本模组的**内置资源包**。
 
-2. **内置中文翻译 & 制作名单**  
-   - 终末之诗文本与 Credits 均已翻译为中文，默认启用  
-   - 可在「资源包」界面手动关闭本内置资源包  
-   Chinese translation of both the poem and credits is enabled by default; disable it in the Resource Packs menu if desired.
+## 使用说明
 
----
+* 对自己播放：`/endpoem`
+* 指定目标播放：`/endpoem <目标>`（如 `@p` / `@a` / 玩家名）
 
-## 安装 │ Installation
+## 注意
 
-### 先决条件 │ Prerequisites  
-- Fabric Loader **≥0.17.0**  
-- Fabric API **≥0.130.0**
-   
-### 步骤 │ Steps  
-1. 下载最新版 JAR：  
-   下载链接：[Releases · gta66666668/Endpoem](https://github.com/gta66666668/Endpoem/releases)  
-   Download the latest JAR from: [Releases · gta66666668/Endpoem](https://github.com/gta66666668/Endpoem/releases)  
+* **请勿滥用命令攻击或骚扰其他玩家。**
 
-2. 放入 mods 目录：  
-   将下载好的jar放到你`.minecraft/mods/` 目录下  
-   Place the downloaded jar into your `.minecraft/mods/` folder
-   
----
+## 环境与依赖
 
-## 配置 │ Configuration  
-**禁用翻译资源包|“Disable the translation resource pack**
+* **Minecraft**：1.21.8
+* **Fabric 加载器**：≥ 0.17.0
+* **Fabric API**：≥ 0.130.0+1.21.8
 
-打开「资源包（Resource Packs）」界面，取消勾选"hellofabric/chinese_end_poem"
-  
-Open the Resource Packs menu and deselect"hellofabric/chinese_end_poem".
-
+—— 享受重温《Minecraft》的传奇结局！
 
 ---
 
-## 许可证 │ License  
-本项目采用 **MIT 许可证**。  
-This project is licensed under the **MIT License**. 
+# English
 
----
+**EndPoem Replay & Chinese Translation**
+Rewatch Minecraft’s End Poem anytime~~with a Chinese translation and a bilingual credits list.~~
+## Features
 
-感谢使用 **EndPoem 重放 & 中文翻译 Mod**，祝你游戏愉快！  
-Thank you for using **EndPoem Replay & Chinese Translation Mod**—have fun!  
+* **Replay Anywhere**: Type **`/endpoem`** in chat to replay the End Poem in **any dimension and game mode**.
+* **Command Selector Support**: Use **`/endpoem <target>`** to choose recipients. Supports **`@p`**, **`@a`**, **`@s`**, **`@r`**, and player names.
+
+  * Examples: `/endpoem @p`, `/endpoem @a`, `/endpoem PlayerName`
+* **Built-in Chinese Translation**: The poem and end ~~credits~~ include a Chinese translation enabled by default. To switch back to English, go to **Settings → Resource Packs** and uncheck this mod’s **built-in resource pack**.
+
+## How to Use
+
+* Play to yourself: `/endpoem`
+* Play to a target: `/endpoem <target>` (e.g., `@p` / `@a` / player name)
+
+## Notes
+
+* **Do not abuse the command to attack or harass other players.**
+
+## Requirements
+
+* **Minecraft**: 1.21.8
+* **Fabric Loader**: ≥ 0.17.0
+* **Fabric API**: ≥ 0.130.0+1.21.8
+
+— Enjoy revisiting Minecraft’s legendary ending!
