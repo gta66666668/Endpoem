@@ -1,22 +1,37 @@
 {
   "schemaVersion": 1,
-  "id": "hellofabric",
-  "version": "1.0.0",
-  "name": "Hello Fabric",
+  "id": "endpoemfabric",
+  "version": "1.0.2",
+  "name": "Endpoem",
   "description": "Adds /endpoem command to replay the End Poem.",
-  "authors": [ "YourName" ],
+  "authors": ["gta66666668"],
   "license": "MIT",
+  "icon": "assets/endpoemfabric/icon.png",
   "environment": "*",
-
   "entrypoints": {
+    "client": [
+      "io.github.niubima.endpoemfabric.client.EndpoemfabricClient"
+    ],
     "main": [
-      "io.github.niubima.hellofabric.HelloFabric"
+      "io.github.niubima.endpoemfabric.Endpoemfabric"
     ]
+  },
+  "mixins": [
+    "endpoemfabric.mixins.json",
+    {
+      "config": "endpoemfabric.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "contact": {
+    "homepage": "https://github.com/gta66666668/Endpoem",
+    "issues": "https://github.com/gta66666668/Endpoem/issues",
+    "sources": "https://github.com/gta66666668/Endpoem"
   },
 
   "depends": {
-    "fabricloader": ">=0.17.0",
-    "minecraft": "1.21.8",
-    "java": ">=21"
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}"
   }
 }

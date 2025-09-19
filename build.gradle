@@ -1,5 +1,5 @@
 plugins {
-    id 'fabric-loom' version '1.11.4'
+    id 'fabric-loom' version '1.11-SNAPSHOT'
     id 'maven-publish'
 }
 
@@ -14,7 +14,7 @@ loom {
     splitEnvironmentSourceSets()
 
     mods {
-        "hellofabric" {
+        "endpoemfabric" {
             sourceSet sourceSets.main
             sourceSet sourceSets.client
         }

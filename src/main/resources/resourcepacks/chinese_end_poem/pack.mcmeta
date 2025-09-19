@@ -1,7 +1,7 @@
 {
   "pack": {
-    "pack_format": 15,
-    "supported_formats": [6, 1000],
-    "description": "启用此资源包以翻译终末之诗＆人员名单"
+    "pack_format": 32,
+    "supported_formats": [6, 114514],
+    "description": { "translate": "pack.hellofabric.chinese_end_poem.desc" }
   }
 }
