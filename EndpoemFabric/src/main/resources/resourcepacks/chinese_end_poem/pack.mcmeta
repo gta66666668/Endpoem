@@ -1,0 +1,7 @@
+{
+  "pack": {
+    "pack_format": 32,
+    "supported_formats": [6, 114514],
+    "description": { "translate": "pack.hellofabric.chinese_end_poem.desc" }
+  }
+}
