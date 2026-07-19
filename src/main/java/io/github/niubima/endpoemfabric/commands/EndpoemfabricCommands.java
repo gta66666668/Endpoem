@@ -145,10 +145,13 @@ public final class EndpoemfabricCommands {
         COOLDOWNS.put(player.getUUID(), System.currentTimeMillis() + cfg().cooldownSeconds * 1000L);
     }
 
-    private static int updatePermissionLevel(CommandSourceStack src, int permissionLevel) {
+    public static int updatePermissionLevel(CommandSourceStack src, int permissionLevel) {
         EndpoemConfigManager.update(config -> config.permissionLevel = permissionLevel);
+        for (ServerPlayer player : src.getServer().getPlayerList().getPlayers()) {
+            src.getServer().getCommands().sendCommands(player);
+        }
         src.sendSuccess(() -> Component.translatable("endpoemfabric.msg.permission_updated", permissionLevel), true);
-        return permissionLevel;
+        return 1;
     }
 
     private static int updateCooldown(CommandSourceStack src, int cooldownSeconds) {

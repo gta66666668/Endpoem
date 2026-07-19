@@ -1,5 +1,5 @@
 plugins {
-    id 'net.fabricmc.fabric-loom' version '1.17.11'
+    id 'net.fabricmc.fabric-loom' version '1.17.16'
     id 'maven-publish'
 }
 
@@ -42,17 +42,20 @@ dependencies {
     }
 }
 
+def expandedModVersion = project.version
+def expandedMinecraftVersion = project.minecraft_version
+def expandedLoaderVersion = project.loader_version
 processResources {
-    inputs.property "version", project.version
-    inputs.property "minecraft_version", project.minecraft_version
-    inputs.property "loader_version", project.loader_version
-    filteringCharset "UTF-8"
+    inputs.property "version", expandedModVersion
+    inputs.property "minecraft_version", expandedMinecraftVersion
+    inputs.property "loader_version", expandedLoaderVersion
+    filteringCharset = "UTF-8"
 
     filesMatching("fabric.mod.json") {
         expand(
-                "version": project.version,
-                "minecraft_version": project.minecraft_version,
-                "loader_version": project.loader_version
+                "version": expandedModVersion,
+                "minecraft_version": expandedMinecraftVersion,
+                "loader_version": expandedLoaderVersion
         )
     }
 }
@@ -60,6 +63,7 @@ processResources {
 def targetJavaVersion = 25
 tasks.withType(JavaCompile).configureEach {
     it.options.encoding = "UTF-8"
+    it.options.compilerArgs.add("-Xlint:deprecation")
     if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
         it.options.release.set(targetJavaVersion)
     }
@@ -73,9 +77,10 @@ java {
     withSourcesJar()
 }
 
+def licenseArchiveName = base.archivesName.get()
 jar {
     from("LICENSE") {
-        rename { "${it}_${project.base.archivesName.get()}" }
+        rename { "${it}_${licenseArchiveName}" }
     }
 }
 

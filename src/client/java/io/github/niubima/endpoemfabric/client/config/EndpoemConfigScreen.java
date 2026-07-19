@@ -1,9 +1,13 @@
 package io.github.niubima.endpoemfabric.client.config;
 
+import com.mojang.brigadier.tree.CommandNode;
 import io.github.niubima.endpoemfabric.Endpoemfabric;
 import io.github.niubima.endpoemfabric.client.CustomEndPoem;
+import io.github.niubima.endpoemfabric.client.CustomEndPoemBackground;
 import io.github.niubima.endpoemfabric.config.EndpoemConfig;
 import io.github.niubima.endpoemfabric.config.EndpoemConfigManager;
+import io.github.niubima.endpoemfabric.network.PermissionLevelNetworking;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
@@ -32,6 +36,11 @@ public final class EndpoemConfigScreen extends Screen {
     private final List<TextLine> textLines = new ArrayList<>();
     private Component status = Component.empty();
     private int statusColor = TEXT_COLOR;
+    private boolean commandSettingsCandidate;
+    private boolean commandSettingsAuthorized;
+    private boolean commandSettingsRequestSent;
+    private int serverPermissionLevel = -1;
+    private int pendingPermissionLevel = -1;
     private int labelX;
     private int controlX;
     private int contentRight;
@@ -53,6 +62,22 @@ public final class EndpoemConfigScreen extends Screen {
     @Override
     protected void init() {
         textLines.clear();
+
+        boolean candidate = canRequestCommandSettings();
+        if (candidate != commandSettingsCandidate) {
+            commandSettingsCandidate = candidate;
+            commandSettingsAuthorized = false;
+            commandSettingsRequestSent = false;
+            serverPermissionLevel = -1;
+            pendingPermissionLevel = -1;
+        }
+        if (!commandSettingsAuthorized && selectedCategory == ConfigCategory.COMMAND) {
+            selectedCategory = ConfigCategory.PRIVACY;
+        }
+        if (commandSettingsCandidate && !commandSettingsRequestSent) {
+            commandSettingsRequestSent = true;
+            ClientPlayNetworking.send(PermissionLevelNetworking.RequestPayload.INSTANCE);
+        }
 
         int contentWidth = Math.min(520, Math.max(300, width - 24));
         int left = (width - contentWidth) / 2;
@@ -83,11 +108,33 @@ public final class EndpoemConfigScreen extends Screen {
                     config.useCustomEndPoem,
                     value -> updateConfig(c -> c.useCustomEndPoem = value)
             );
-            addEditorRow(
+            y = addEditorRow(
                     Component.translatable("text.autoconfig.endpoemfabric.option.editCustomEndPoem"),
                     Component.translatable("text.autoconfig.endpoemfabric.option.editCustomEndPoem.@Tooltip"),
                     y
             );
+        } else if (selectedCategory == ConfigCategory.BACKGROUND) {
+            y = addSection(y, Component.translatable("text.autoconfig.endpoemfabric.category.background"));
+            y = addCycleRow(
+                    Component.translatable("text.autoconfig.endpoemfabric.option.backgroundMode"),
+                    Component.translatable("text.autoconfig.endpoemfabric.option.backgroundMode.@Tooltip"),
+                    y,
+                    backgroundModeText(config.backgroundMode),
+                    () -> cycleBackgroundMode(config.backgroundMode)
+            );
+            if (EndpoemConfig.BACKGROUND_CUSTOM.equals(config.backgroundMode)) {
+                y = addCycleRow(
+                        Component.translatable("text.autoconfig.endpoemfabric.option.backgroundScale"),
+                        Component.translatable("text.autoconfig.endpoemfabric.option.backgroundScale.@Tooltip"),
+                        y,
+                        backgroundScaleText(config.backgroundScale),
+                        () -> cycleBackgroundScale(config.backgroundScale)
+                );
+                addBackgroundFileRow(y);
+            }
+        } else if (selectedCategory == ConfigCategory.COMMAND) {
+            y = addSection(y, Component.translatable("text.autoconfig.endpoemfabric.category.command"));
+            addPermissionLevelRow(y);
         }
 
         addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> onClose())
@@ -115,8 +162,39 @@ public final class EndpoemConfigScreen extends Screen {
     @Override
     public void onClose() {
         if (minecraft != null) {
-            minecraft.setScreen(parent);
+            minecraft.gui.setScreen(parent);
         }
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        if (canRequestCommandSettings() != commandSettingsCandidate) {
+            rebuildWidgets();
+        }
+    }
+
+    public void updatePermissionLevelState(boolean authorized, int permissionLevel) {
+        boolean canShow = authorized
+                && permissionLevel >= 0
+                && permissionLevel <= 4
+                && canRequestCommandSettings();
+        commandSettingsAuthorized = canShow;
+        serverPermissionLevel = canShow ? permissionLevel : -1;
+
+        if (pendingPermissionLevel >= 0 && canShow) {
+            status = Component.translatable(
+                    "text.autoconfig.endpoemfabric.status.permission_level_updated",
+                    permissionLevel
+            );
+            statusColor = TEXT_COLOR;
+        }
+        pendingPermissionLevel = -1;
+
+        if (!canShow && selectedCategory == ConfigCategory.COMMAND) {
+            selectedCategory = ConfigCategory.PRIVACY;
+        }
+        rebuildWidgets();
     }
 
     private int addSection(int y, Component label) {
@@ -128,6 +206,10 @@ public final class EndpoemConfigScreen extends Screen {
         List<ConfigCategory> categories = new ArrayList<>();
         categories.add(ConfigCategory.PRIVACY);
         categories.add(ConfigCategory.POEM);
+        categories.add(ConfigCategory.BACKGROUND);
+        if (commandSettingsAuthorized) {
+            categories.add(ConfigCategory.COMMAND);
+        }
 
         int gap = 4;
         int tabWidth = (contentWidth - gap * (categories.size() - 1)) / categories.size();
@@ -159,14 +241,72 @@ public final class EndpoemConfigScreen extends Screen {
         return y + rowHeight;
     }
 
-    private void addEditorRow(Component label, Component description, int y) {
-        addLabelAndDescription(label, description, y);
+    private int addEditorRow(Component label, Component description, int y) {
+        int rowHeight = addLabelAndDescription(label, description, y);
         addRenderableWidget(Button.builder(Component.translatable("text.autoconfig.endpoemfabric.button.edit"), button -> openEditor())
                 .bounds(controlX, y, 84, CONTROL_HEIGHT)
                 .build());
         addRenderableWidget(Button.builder(Component.translatable("text.autoconfig.endpoemfabric.button.open_external"), button -> openExternal())
                 .bounds(controlX + 90, y, 84, CONTROL_HEIGHT)
                 .build());
+        return y + rowHeight;
+    }
+
+    private int addCycleRow(
+            Component label,
+            Component description,
+            int y,
+            Component value,
+            Runnable cycle
+    ) {
+        int rowHeight = addLabelAndDescription(label, description, y);
+        addRenderableWidget(Button.builder(value, button -> cycle.run())
+                .bounds(controlX, y, CONTROL_WIDTH, CONTROL_HEIGHT)
+                .build());
+        return y + rowHeight;
+    }
+
+    private void addBackgroundFileRow(int y) {
+        addLabelAndDescription(
+                Component.translatable("text.autoconfig.endpoemfabric.option.backgroundFile"),
+                Component.translatable("text.autoconfig.endpoemfabric.option.backgroundFile.@Tooltip"),
+                y
+        );
+        addRenderableWidget(Button.builder(
+                        Component.translatable("text.autoconfig.endpoemfabric.button.open_background_folder"),
+                        button -> openBackgroundFolder()
+                )
+                .bounds(controlX, y, 84, CONTROL_HEIGHT)
+                .build());
+        addRenderableWidget(Button.builder(
+                        Component.translatable("text.autoconfig.endpoemfabric.button.reload_background"),
+                        button -> reloadBackground()
+                )
+                .bounds(controlX + 90, y, 84, CONTROL_HEIGHT)
+                .build());
+    }
+
+    private void addPermissionLevelRow(int y) {
+        addLabelAndDescription(
+                Component.translatable("text.autoconfig.endpoemfabric.option.permissionLevel"),
+                Component.translatable("text.autoconfig.endpoemfabric.option.permissionLevel.@Tooltip"),
+                y
+        );
+
+        int gap = 4;
+        int buttonWidth = (CONTROL_WIDTH - gap * 4) / 5;
+        int buttonX = controlX;
+        for (int level = 0; level <= 4; level++) {
+            int selectedLevel = level;
+            int widthForButton = level == 4 ? controlX + CONTROL_WIDTH - buttonX : buttonWidth;
+            Button button = Button.builder(Component.literal(Integer.toString(level)), ignored ->
+                            updateServerPermissionLevel(selectedLevel))
+                    .bounds(buttonX, y, widthForButton, CONTROL_HEIGHT)
+                    .build();
+            button.active = pendingPermissionLevel < 0 && level != serverPermissionLevel;
+            addRenderableWidget(button);
+            buttonX += widthForButton + gap;
+        }
     }
 
     private int addLabelAndDescription(Component label, Component description, int y) {
@@ -185,7 +325,7 @@ public final class EndpoemConfigScreen extends Screen {
     private void openEditor() {
         EndpoemConfigManager.update(config -> config.useCustomEndPoem = true);
         if (minecraft != null) {
-            minecraft.setScreen(new EndPoemEditorScreen(new EndpoemConfigScreen(parent, ConfigCategory.POEM)));
+            minecraft.gui.setScreen(new EndPoemEditorScreen(new EndpoemConfigScreen(parent, ConfigCategory.POEM)));
         }
     }
 
@@ -202,12 +342,96 @@ public final class EndpoemConfigScreen extends Screen {
         rebuildWidgets();
     }
 
+    private void openBackgroundFolder() {
+        CustomEndPoemBackground.initialize();
+        Util.getPlatform().openPath(CustomEndPoemBackground.getDirectory());
+    }
+
+    private void reloadBackground() {
+        boolean loaded = CustomEndPoemBackground.reload();
+        status = Component.translatable(loaded
+                ? "text.autoconfig.endpoemfabric.status.background_loaded"
+                : "text.autoconfig.endpoemfabric.status.background_missing");
+        statusColor = loaded ? TEXT_COLOR : ERROR_COLOR;
+        rebuildWidgets();
+    }
+
+    private void cycleBackgroundMode(String currentMode) {
+        String nextMode = switch (currentMode) {
+            case EndpoemConfig.BACKGROUND_VANILLA -> EndpoemConfig.BACKGROUND_BLACK;
+            case EndpoemConfig.BACKGROUND_BLACK -> EndpoemConfig.BACKGROUND_PURPLE;
+            case EndpoemConfig.BACKGROUND_PURPLE -> EndpoemConfig.BACKGROUND_CUSTOM;
+            default -> EndpoemConfig.BACKGROUND_VANILLA;
+        };
+        updateConfig(config -> config.backgroundMode = nextMode);
+        if (EndpoemConfig.BACKGROUND_CUSTOM.equals(nextMode) && !CustomEndPoemBackground.reload()) {
+            status = Component.translatable("text.autoconfig.endpoemfabric.status.background_missing");
+            statusColor = ERROR_COLOR;
+        }
+        rebuildWidgets();
+    }
+
+    private void cycleBackgroundScale(String currentScale) {
+        String nextScale = switch (currentScale) {
+            case EndpoemConfig.BACKGROUND_SCALE_COVER -> EndpoemConfig.BACKGROUND_SCALE_CONTAIN;
+            case EndpoemConfig.BACKGROUND_SCALE_CONTAIN -> EndpoemConfig.BACKGROUND_SCALE_STRETCH;
+            default -> EndpoemConfig.BACKGROUND_SCALE_COVER;
+        };
+        updateConfig(config -> config.backgroundScale = nextScale);
+        rebuildWidgets();
+    }
+
     private void updateConfig(Consumer<EndpoemConfig> updater) {
         EndpoemConfigManager.update(updater);
     }
 
+    private void updateServerPermissionLevel(int permissionLevel) {
+        if (!commandSettingsAuthorized || pendingPermissionLevel >= 0 || !canRequestCommandSettings()) {
+            return;
+        }
+
+        pendingPermissionLevel = permissionLevel;
+        status = Component.translatable(
+                "text.autoconfig.endpoemfabric.status.permission_level_updating",
+                permissionLevel
+        );
+        statusColor = TEXT_COLOR;
+        ClientPlayNetworking.send(new PermissionLevelNetworking.UpdatePayload(permissionLevel));
+        rebuildWidgets();
+    }
+
+    private boolean canRequestCommandSettings() {
+        if (minecraft == null || minecraft.player == null || minecraft.getConnection() == null
+                || !ClientPlayNetworking.canSend(PermissionLevelNetworking.RequestPayload.TYPE)) {
+            return false;
+        }
+
+        CommandNode<?> levelNode = minecraft.getConnection().getCommands()
+                .findNode(List.of("endpoem", "config", "op", "level"));
+        return levelNode != null && levelNode.getCommand() != null;
+    }
+
     private static Component booleanText(boolean value) {
         return Component.translatable(value ? "options.on" : "options.off");
+    }
+
+    private static Component backgroundModeText(String mode) {
+        String suffix = switch (mode) {
+            case EndpoemConfig.BACKGROUND_BLACK -> "black";
+            case EndpoemConfig.BACKGROUND_PURPLE -> "purple";
+            case EndpoemConfig.BACKGROUND_CUSTOM -> "custom";
+            default -> "vanilla";
+        };
+        return Component.translatable("text.autoconfig.endpoemfabric.background_mode." + suffix);
+    }
+
+    private static Component backgroundScaleText(String scale) {
+        String suffix = switch (scale) {
+            case EndpoemConfig.BACKGROUND_SCALE_CONTAIN -> "contain";
+            case EndpoemConfig.BACKGROUND_SCALE_STRETCH -> "stretch";
+            default -> "cover";
+        };
+        return Component.translatable("text.autoconfig.endpoemfabric.background_scale." + suffix);
     }
 
     private record TextLine(FormattedCharSequence text, int x, int y, int color, boolean centered) {
@@ -215,7 +439,9 @@ public final class EndpoemConfigScreen extends Screen {
 
     private enum ConfigCategory {
         PRIVACY("text.autoconfig.endpoemfabric.category.privacy"),
-        POEM("text.autoconfig.endpoemfabric.category.poem");
+        POEM("text.autoconfig.endpoemfabric.category.poem"),
+        BACKGROUND("text.autoconfig.endpoemfabric.category.background"),
+        COMMAND("text.autoconfig.endpoemfabric.category.command");
 
         private final String translationKey;
 
