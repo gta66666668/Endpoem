@@ -11,6 +11,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.WinScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Util;
@@ -21,6 +22,8 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public final class EndpoemConfigScreen extends Screen {
+    private static final float[] SCROLL_SPEED_PRESETS = {0.5F, 0.75F, 1.0F, 1.5F, 2.0F, 3.0F};
+    private static final int[] BACKGROUND_CROP_PRESETS = {0, 5, 10, 15, 20, 25, 30, 35, 40};
     private static final int SECTION_HEIGHT = 18;
     private static final int ROW_MIN_HEIGHT = 38;
     private static final int TAB_HEIGHT = 20;
@@ -123,15 +126,19 @@ public final class EndpoemConfigScreen extends Screen {
                     () -> cycleBackgroundMode(config.backgroundMode)
             );
             if (EndpoemConfig.BACKGROUND_CUSTOM.equals(config.backgroundMode)) {
-                y = addCycleRow(
-                        Component.translatable("text.autoconfig.endpoemfabric.option.backgroundScale"),
-                        Component.translatable("text.autoconfig.endpoemfabric.option.backgroundScale.@Tooltip"),
-                        y,
-                        backgroundScaleText(config.backgroundScale),
-                        () -> cycleBackgroundScale(config.backgroundScale)
-                );
+                y = addBackgroundLayoutRow(y, config.backgroundScale, config.backgroundCropPercent);
                 addBackgroundFileRow(y);
             }
+        } else if (selectedCategory == ConfigCategory.PLAYBACK) {
+            y = addSection(y, Component.translatable("text.autoconfig.endpoemfabric.category.playback"));
+            y = addCycleRow(
+                    Component.translatable("text.autoconfig.endpoemfabric.option.scrollSpeed"),
+                    Component.translatable("text.autoconfig.endpoemfabric.option.scrollSpeed.@Tooltip"),
+                    y,
+                    scrollSpeedText(config.scrollSpeedMultiplier),
+                    () -> cycleScrollSpeed(config.scrollSpeedMultiplier)
+            );
+            addPreviewRow(y);
         } else if (selectedCategory == ConfigCategory.COMMAND) {
             y = addSection(y, Component.translatable("text.autoconfig.endpoemfabric.category.command"));
             addPermissionLevelRow(y);
@@ -207,6 +214,7 @@ public final class EndpoemConfigScreen extends Screen {
         categories.add(ConfigCategory.PRIVACY);
         categories.add(ConfigCategory.POEM);
         categories.add(ConfigCategory.BACKGROUND);
+        categories.add(ConfigCategory.PLAYBACK);
         if (commandSettingsAuthorized) {
             categories.add(ConfigCategory.COMMAND);
         }
@@ -266,6 +274,27 @@ public final class EndpoemConfigScreen extends Screen {
         return y + rowHeight;
     }
 
+    private int addBackgroundLayoutRow(int y, String scaleMode, int cropPercent) {
+        int rowHeight = addLabelAndDescription(
+                Component.translatable("text.autoconfig.endpoemfabric.option.backgroundScale"),
+                Component.translatable("text.autoconfig.endpoemfabric.option.backgroundScale.@Tooltip"),
+                y
+        );
+        addRenderableWidget(Button.builder(
+                        backgroundScaleText(scaleMode),
+                        button -> cycleBackgroundScale(scaleMode)
+                )
+                .bounds(controlX, y, 84, CONTROL_HEIGHT)
+                .build());
+        addRenderableWidget(Button.builder(
+                        Component.literal(cropPercent + "%"),
+                        button -> cycleBackgroundCrop(cropPercent)
+                )
+                .bounds(controlX + 90, y, 84, CONTROL_HEIGHT)
+                .build());
+        return y + rowHeight;
+    }
+
     private void addBackgroundFileRow(int y) {
         addLabelAndDescription(
                 Component.translatable("text.autoconfig.endpoemfabric.option.backgroundFile"),
@@ -283,6 +312,20 @@ public final class EndpoemConfigScreen extends Screen {
                         button -> reloadBackground()
                 )
                 .bounds(controlX + 90, y, 84, CONTROL_HEIGHT)
+                .build());
+    }
+
+    private void addPreviewRow(int y) {
+        addLabelAndDescription(
+                Component.translatable("text.autoconfig.endpoemfabric.option.playEndPoem"),
+                Component.translatable("text.autoconfig.endpoemfabric.option.playEndPoem.@Tooltip"),
+                y
+        );
+        addRenderableWidget(Button.builder(
+                        Component.translatable("text.autoconfig.endpoemfabric.button.play_end_poem"),
+                        button -> playEndPoemPreview()
+                )
+                .bounds(controlX, y, CONTROL_WIDTH, CONTROL_HEIGHT)
                 .build());
     }
 
@@ -348,12 +391,20 @@ public final class EndpoemConfigScreen extends Screen {
     }
 
     private void reloadBackground() {
-        boolean loaded = CustomEndPoemBackground.reload();
+        setBackgroundLoadStatus(CustomEndPoemBackground.reload());
+        rebuildWidgets();
+    }
+
+    private void setBackgroundLoadStatus(boolean loaded) {
         status = Component.translatable(loaded
                 ? "text.autoconfig.endpoemfabric.status.background_loaded"
                 : "text.autoconfig.endpoemfabric.status.background_missing");
         statusColor = loaded ? TEXT_COLOR : ERROR_COLOR;
-        rebuildWidgets();
+    }
+
+    private void clearStatus() {
+        status = Component.empty();
+        statusColor = TEXT_COLOR;
     }
 
     private void cycleBackgroundMode(String currentMode) {
@@ -364,9 +415,9 @@ public final class EndpoemConfigScreen extends Screen {
             default -> EndpoemConfig.BACKGROUND_VANILLA;
         };
         updateConfig(config -> config.backgroundMode = nextMode);
-        if (EndpoemConfig.BACKGROUND_CUSTOM.equals(nextMode) && !CustomEndPoemBackground.reload()) {
-            status = Component.translatable("text.autoconfig.endpoemfabric.status.background_missing");
-            statusColor = ERROR_COLOR;
+        clearStatus();
+        if (EndpoemConfig.BACKGROUND_CUSTOM.equals(nextMode)) {
+            setBackgroundLoadStatus(CustomEndPoemBackground.reload());
         }
         rebuildWidgets();
     }
@@ -379,6 +430,41 @@ public final class EndpoemConfigScreen extends Screen {
         };
         updateConfig(config -> config.backgroundScale = nextScale);
         rebuildWidgets();
+    }
+
+    private void cycleBackgroundCrop(int currentPercent) {
+        int nearest = 0;
+        for (int i = 1; i < BACKGROUND_CROP_PRESETS.length; i++) {
+            if (Math.abs(currentPercent - BACKGROUND_CROP_PRESETS[i])
+                    < Math.abs(currentPercent - BACKGROUND_CROP_PRESETS[nearest])) {
+                nearest = i;
+            }
+        }
+        int nextPercent = BACKGROUND_CROP_PRESETS[(nearest + 1) % BACKGROUND_CROP_PRESETS.length];
+        updateConfig(config -> config.backgroundCropPercent = nextPercent);
+        rebuildWidgets();
+    }
+
+    private void cycleScrollSpeed(float currentSpeed) {
+        int nearest = 0;
+        for (int i = 1; i < SCROLL_SPEED_PRESETS.length; i++) {
+            if (Math.abs(currentSpeed - SCROLL_SPEED_PRESETS[i])
+                    < Math.abs(currentSpeed - SCROLL_SPEED_PRESETS[nearest])) {
+                nearest = i;
+            }
+        }
+        float nextSpeed = SCROLL_SPEED_PRESETS[(nearest + 1) % SCROLL_SPEED_PRESETS.length];
+        updateConfig(config -> config.scrollSpeedMultiplier = nextSpeed);
+        rebuildWidgets();
+    }
+
+    private void playEndPoemPreview() {
+        if (minecraft == null) {
+            return;
+        }
+
+        var client = minecraft;
+        client.gui.setScreen(new WinScreen(true, () -> client.gui.setScreen(this)));
     }
 
     private void updateConfig(Consumer<EndpoemConfig> updater) {
@@ -434,6 +520,11 @@ public final class EndpoemConfigScreen extends Screen {
         return Component.translatable("text.autoconfig.endpoemfabric.background_scale." + suffix);
     }
 
+    private static Component scrollSpeedText(float speed) {
+        String value = speed == (int) speed ? Integer.toString((int) speed) : Float.toString(speed);
+        return Component.literal(value + "×");
+    }
+
     private record TextLine(FormattedCharSequence text, int x, int y, int color, boolean centered) {
     }
 
@@ -441,6 +532,7 @@ public final class EndpoemConfigScreen extends Screen {
         PRIVACY("text.autoconfig.endpoemfabric.category.privacy"),
         POEM("text.autoconfig.endpoemfabric.category.poem"),
         BACKGROUND("text.autoconfig.endpoemfabric.category.background"),
+        PLAYBACK("text.autoconfig.endpoemfabric.category.playback"),
         COMMAND("text.autoconfig.endpoemfabric.category.command");
 
         private final String translationKey;

@@ -70,6 +70,8 @@ public final class EndpoemConfigManager {
         value.cooldownSeconds = clamp(value.cooldownSeconds, 0, 3600);
         value.backgroundMode = sanitizeBackgroundMode(value.backgroundMode);
         value.backgroundScale = sanitizeBackgroundScale(value.backgroundScale);
+        value.backgroundCropPercent = clamp(value.backgroundCropPercent, 0, 40);
+        value.scrollSpeedMultiplier = sanitizeScrollSpeed(value.scrollSpeedMultiplier);
     }
 
     private static String sanitizeBackgroundMode(String value) {
@@ -91,5 +93,12 @@ public final class EndpoemConfigManager {
 
     private static int clamp(int value, int min, int max) {
         return Math.max(min, Math.min(max, value));
+    }
+
+    private static float sanitizeScrollSpeed(float value) {
+        if (!Float.isFinite(value)) {
+            return 1.0F;
+        }
+        return Math.max(0.25F, Math.min(4.0F, value));
     }
 }

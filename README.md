@@ -9,13 +9,14 @@
 - 使用 `/endpoem` 重播终末之诗，并支持目标选择器。
 - 内置兼容 Minecraft 26.2 的中文终末之诗资源包。
 - 可在游戏内编辑和预览自定义终末之诗。
-- 可将终末之诗背景切换为原版、纯黑、深紫渐变或自定义 PNG 图片。
-- 自定义背景支持铺满裁剪、保持比例和拉伸。
+- 可将终末之诗背景切换为原版、纯黑、深紫渐变或自定义图片。
+- 自定义背景支持 PNG、JPG、JPEG、BMP、GIF（首帧）和 TGA，可选择铺满裁剪、保持比例、拉伸以及按百分比四边裁切。
+- 可在配置菜单中切换终末之诗滚动速度，并直接播放当前文本、背景和速度进行本地预览。
 - 配置菜单中的命令权限等级仅对拥有修改权限的玩家显示，主菜单不会显示该选项。
 - 默认使用 `K` 打开配置；旧版默认 `O` 键会自动迁移，其他自定义按键保持不变。
 
-自定义文本位于 `config/endpoemfabric/end.txt`，自定义背景图片位于
-`config/endpoemfabric/background.png`。
+自定义文本位于 `config/endpoemfabric/end.txt`。自定义背景图片放在
+`config/endpoemfabric/`，文件名使用 `background` 和受支持的扩展名。
 
 ## 开发环境
 
@@ -36,5 +37,6 @@
 ## English
 
 Endpoem is a Fabric mod for Minecraft 26.2 that replays and customizes the End
-Poem. It includes an in-game text editor, configurable backgrounds, a built-in
-Chinese resource pack, and permission-aware server command settings.
+Poem. It includes an in-game text editor, configurable backgrounds and scroll
+speed, local playback previews, a built-in Chinese resource pack, and
+permission-aware server command settings.

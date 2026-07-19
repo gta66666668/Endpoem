@@ -15,8 +15,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 public final class CustomEndPoemBackground {
+    private static final List<String> SUPPORTED_EXTENSIONS = List.of(
+            "png",
+            "jpg",
+            "jpeg",
+            "bmp",
+            "gif",
+            "tga"
+    );
     private static final Identifier TEXTURE_ID = Identifier.fromNamespaceAndPath(
             Endpoemfabric.MODID,
             "custom_end_poem_background"
@@ -46,8 +55,17 @@ public final class CustomEndPoemBackground {
 
     public static boolean reload() {
         loadAttempted = true;
-        Path path = getPath();
-        if (!Files.isRegularFile(path)) {
+        initialize();
+
+        Path path;
+        try {
+            path = findBackgroundPath();
+        } catch (IOException e) {
+            releaseTexture();
+            Endpoemfabric.LOGGER.warn("Failed to inspect custom End Poem background directory at {}", getDirectory(), e);
+            return false;
+        }
+        if (path == null) {
             releaseTexture();
             return false;
         }
@@ -93,7 +111,8 @@ public final class CustomEndPoemBackground {
                     graphics,
                     width,
                     height,
-                    config.backgroundScale
+                    config.backgroundScale,
+                    config.backgroundCropPercent
             );
             default -> false;
         };
@@ -106,6 +125,13 @@ public final class CustomEndPoemBackground {
     }
 
     public static Path getPath() {
+        try {
+            Path path = findBackgroundPath();
+            if (path != null) {
+                return path;
+            }
+        } catch (IOException ignored) {
+        }
         return getDirectory().resolve("background.png");
     }
 
@@ -113,7 +139,8 @@ public final class CustomEndPoemBackground {
             GuiGraphicsExtractor graphics,
             int width,
             int height,
-            String scaleMode
+            String scaleMode,
+            int cropPercent
     ) {
         if (!loadAttempted && !reload()) {
             return false;
@@ -123,29 +150,32 @@ public final class CustomEndPoemBackground {
         }
 
         graphics.fill(0, 0, width, height, 0xFF000000);
+        CropRegion crop = createCropRegion(cropPercent);
         switch (scaleMode) {
-            case EndpoemConfig.BACKGROUND_SCALE_CONTAIN -> renderContained(graphics, width, height);
+            case EndpoemConfig.BACKGROUND_SCALE_CONTAIN -> renderContained(graphics, width, height, crop);
             case EndpoemConfig.BACKGROUND_SCALE_STRETCH -> graphics.blit(
                     RenderPipelines.GUI_TEXTURED,
                     TEXTURE_ID,
                     0,
                     0,
-                    0.0F,
-                    0.0F,
+                    crop.x(),
+                    crop.y(),
                     width,
                     height,
+                    crop.width(),
+                    crop.height(),
                     imageWidth,
                     imageHeight
             );
-            default -> renderCovered(graphics, width, height);
+            default -> renderCovered(graphics, width, height, crop);
         }
         return true;
     }
 
-    private static void renderContained(GuiGraphicsExtractor graphics, int width, int height) {
-        float scale = Math.min(width / (float) imageWidth, height / (float) imageHeight);
-        int renderedWidth = Math.max(1, Math.round(imageWidth * scale));
-        int renderedHeight = Math.max(1, Math.round(imageHeight * scale));
+    private static void renderContained(GuiGraphicsExtractor graphics, int width, int height, CropRegion crop) {
+        float scale = Math.min(width / (float) crop.width(), height / (float) crop.height());
+        int renderedWidth = Math.max(1, Math.round(crop.width() * scale));
+        int renderedHeight = Math.max(1, Math.round(crop.height() * scale));
         int x = (width - renderedWidth) / 2;
         int y = (height - renderedHeight) / 2;
         graphics.blit(
@@ -153,29 +183,31 @@ public final class CustomEndPoemBackground {
                 TEXTURE_ID,
                 x,
                 y,
-                0.0F,
-                0.0F,
+                crop.x(),
+                crop.y(),
                 renderedWidth,
                 renderedHeight,
+                crop.width(),
+                crop.height(),
                 imageWidth,
                 imageHeight
         );
     }
 
-    private static void renderCovered(GuiGraphicsExtractor graphics, int width, int height) {
+    private static void renderCovered(GuiGraphicsExtractor graphics, int width, int height, CropRegion crop) {
         float screenAspect = width / (float) height;
-        float imageAspect = imageWidth / (float) imageHeight;
-        int sourceX = 0;
-        int sourceY = 0;
-        int sourceWidth = imageWidth;
-        int sourceHeight = imageHeight;
+        float imageAspect = crop.width() / (float) crop.height();
+        int sourceX = crop.x();
+        int sourceY = crop.y();
+        int sourceWidth = crop.width();
+        int sourceHeight = crop.height();
 
         if (imageAspect > screenAspect) {
-            sourceWidth = Math.max(1, Math.round(imageHeight * screenAspect));
-            sourceX = (imageWidth - sourceWidth) / 2;
+            sourceWidth = Math.max(1, Math.round(crop.height() * screenAspect));
+            sourceX = crop.x() + (crop.width() - sourceWidth) / 2;
         } else if (imageAspect < screenAspect) {
-            sourceHeight = Math.max(1, Math.round(imageWidth / screenAspect));
-            sourceY = (imageHeight - sourceHeight) / 2;
+            sourceHeight = Math.max(1, Math.round(crop.width() / screenAspect));
+            sourceY = crop.y() + (crop.height() - sourceHeight) / 2;
         }
 
         graphics.blit(
@@ -194,6 +226,43 @@ public final class CustomEndPoemBackground {
         );
     }
 
+    private static CropRegion createCropRegion(int cropPercent) {
+        int cropX = Math.min((imageWidth - 1) / 2, Math.round(imageWidth * cropPercent / 100.0F));
+        int cropY = Math.min((imageHeight - 1) / 2, Math.round(imageHeight * cropPercent / 100.0F));
+        return new CropRegion(
+                cropX,
+                cropY,
+                Math.max(1, imageWidth - cropX * 2),
+                Math.max(1, imageHeight - cropY * 2)
+        );
+    }
+
+    private static Path findBackgroundPath() throws IOException {
+        Path directory = getDirectory();
+        if (!Files.isDirectory(directory)) {
+            return null;
+        }
+
+        List<Path> files;
+        try (var paths = Files.list(directory)) {
+            files = paths
+                    .filter(Files::isRegularFile)
+                    .sorted((left, right) -> left.getFileName().toString()
+                            .compareToIgnoreCase(right.getFileName().toString()))
+                    .toList();
+        }
+
+        for (String extension : SUPPORTED_EXTENSIONS) {
+            String expectedName = "background." + extension;
+            for (Path file : files) {
+                if (file.getFileName().toString().equalsIgnoreCase(expectedName)) {
+                    return file;
+                }
+            }
+        }
+        return null;
+    }
+
     private static void releaseTexture() {
         if (textureLoaded) {
             Minecraft.getInstance().getTextureManager().release(TEXTURE_ID);
@@ -201,5 +270,8 @@ public final class CustomEndPoemBackground {
         textureLoaded = false;
         imageWidth = 0;
         imageHeight = 0;
+    }
+
+    private record CropRegion(int x, int y, int width, int height) {
     }
 }
