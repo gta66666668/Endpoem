@@ -15,5 +15,7 @@ public class EndpoemConfig {
     public boolean useCustomEndPoem = false;
     public String backgroundMode = BACKGROUND_VANILLA;
     public String backgroundScale = BACKGROUND_SCALE_COVER;
+    public int backgroundCropPercent = 0;
+    public float scrollSpeedMultiplier = 1.0F;
     public boolean migratedOpenConfigKeyToK = false;
 }
