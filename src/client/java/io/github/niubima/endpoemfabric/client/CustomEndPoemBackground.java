@@ -11,6 +11,8 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.Identifier;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -23,8 +25,7 @@ public final class CustomEndPoemBackground {
             "jpg",
             "jpeg",
             "bmp",
-            "gif",
-            "tga"
+            "gif"
     );
     private static final Identifier TEXTURE_ID = Identifier.fromNamespaceAndPath(
             Endpoemfabric.MODID,
@@ -72,8 +73,8 @@ public final class CustomEndPoemBackground {
 
         NativeImage image = null;
         DynamicTexture texture = null;
-        try (InputStream stream = Files.newInputStream(path)) {
-            image = NativeImage.read(stream);
+        try {
+            image = readImage(path);
             if (image.getWidth() <= 0 || image.getHeight() <= 0) {
                 throw new IOException("Background image has invalid dimensions");
             }
@@ -93,6 +94,41 @@ public final class CustomEndPoemBackground {
             releaseTexture();
             Endpoemfabric.LOGGER.warn("Failed to load custom End Poem background from {}", path, e);
             return false;
+        }
+    }
+
+    private static NativeImage readImage(Path path) throws IOException {
+        String fileName = path.getFileName().toString();
+        if (fileName.regionMatches(true, fileName.length() - 4, ".png", 0, 4)) {
+            try (InputStream stream = Files.newInputStream(path)) {
+                return NativeImage.read(stream);
+            }
+        }
+
+        BufferedImage bufferedImage;
+        try (InputStream stream = Files.newInputStream(path)) {
+            bufferedImage = ImageIO.read(stream);
+        }
+        if (bufferedImage == null || bufferedImage.getWidth() <= 0 || bufferedImage.getHeight() <= 0) {
+            throw new IOException("Unsupported or invalid background image");
+        }
+
+        NativeImage nativeImage = new NativeImage(bufferedImage.getWidth(), bufferedImage.getHeight(), false);
+        try {
+            int width = bufferedImage.getWidth();
+            int height = bufferedImage.getHeight();
+            int[] pixels = bufferedImage.getRGB(0, 0, width, height, null, 0, width);
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    nativeImage.setPixel(x, y, pixels[y * width + x]);
+                }
+            }
+            return nativeImage;
+        } catch (RuntimeException e) {
+            nativeImage.close();
+            throw e;
+        } finally {
+            bufferedImage.flush();
         }
     }
 

@@ -25,7 +25,7 @@
   "text.autoconfig.endpoemfabric.option.backgroundScale": "显示方式与四边裁切",
   "text.autoconfig.endpoemfabric.option.backgroundScale.@Tooltip": "左侧切换图片适配方式；右侧设置从图片上、下、左、右各裁去的百分比。",
   "text.autoconfig.endpoemfabric.option.backgroundFile": "自定义背景图片",
-  "text.autoconfig.endpoemfabric.option.backgroundFile.@Tooltip": "将图片命名为 background；支持 PNG、JPG、JPEG、BMP、GIF（首帧）和 TGA，然后点击重新加载。",
+  "text.autoconfig.endpoemfabric.option.backgroundFile.@Tooltip": "将图片命名为 background；支持 PNG、JPG、JPEG、BMP 和 GIF（首帧），然后点击重新加载。",
   "text.autoconfig.endpoemfabric.background_mode.vanilla": "原版末地传送门",
   "text.autoconfig.endpoemfabric.background_mode.black": "纯黑",
   "text.autoconfig.endpoemfabric.background_mode.purple": "深紫渐变",
