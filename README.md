@@ -1,63 +1,36 @@
-modrinthURL:**https://modrinth.com/mod/endpoem**
+# Endpoem
 
+适用于 Fabric 的 Minecraft 终末之诗重播与自定义模组。
 
-# 中文（简体）
+## 功能
 
-**EndPoem 重放 & 中文翻译**
-随时重看《Minecraft 终末之诗》，~~并附中文译文与双语制作人员名单。~~
+- 使用 `/endpoem` 重播终末之诗，并支持目标选择器。
+- 内置中文终末之诗资源包。
+- 可在游戏内编辑自定义终末之诗。
+- 纯文本模式会原样显示并编辑 `§` 格式代码；预览模式以游戏效果渲染，且保持只读。
 
-## 主要功能
+## 开发环境
 
-* **一键重放**：在聊天框输入 **`/endpoem`**，可在**任意维度、任意游戏模式**下重放终末之诗。
-* **命令选择器支持**：使用 **`/endpoem <目标>`** 指定播放对象，兼容 **`@p`**、**`@a`**、**`@s`**、**`@r`** 及玩家名。
+- Minecraft `26.1.2`
+- Java `25`
+- Fabric Loader `0.19.3`
+- Fabric API `0.151.0+26.1.2`
 
-  * 示例：`/endpoem @p`、`/endpoem @a`、`/endpoem 玩家名`
-* **内置中文翻译**：终末之诗~~与结尾制作人员名单~~已翻译为中文并默认启用；如需英文原文，请前往 **设置 → 资源包** 取消勾选本模组的**内置资源包**。
+Gradle 会自动发现本机可用的 Java 25；不再依赖某个固定磁盘路径。
 
-## 使用说明
+## 构建
 
-* 对自己播放：`/endpoem`
-* 指定目标播放：`/endpoem <目标>`（如 `@p` / `@a` / 玩家名）
+```powershell
+.\gradlew.bat build
+```
 
-## 注意
+构建产物位于 `build/libs/`。
 
-* **请勿滥用命令攻击或骚扰其他玩家。**
+## 仓库结构
 
-## 环境与依赖
+- `src/`：当前 Fabric 源码
+- `gradle/`、`build.gradle`、`gradle.properties`：构建配置
 
-* **Minecraft**：1.21.8
-* **Fabric 加载器**：≥ 0.17.0
-* **Fabric API**：≥ 0.130.0+1.21.8
+## English
 
-—— 享受重温《Minecraft》的传奇结局！
-
----
-
-# English
-
-**EndPoem Replay & Chinese Translation**
-Rewatch Minecraft’s End Poem anytime~~with a Chinese translation and a bilingual credits list.~~
-## Features
-
-* **Replay Anywhere**: Type **`/endpoem`** in chat to replay the End Poem in **any dimension and game mode**.
-* **Command Selector Support**: Use **`/endpoem <target>`** to choose recipients. Supports **`@p`**, **`@a`**, **`@s`**, **`@r`**, and player names.
-
-  * Examples: `/endpoem @p`, `/endpoem @a`, `/endpoem PlayerName`
-* **Built-in Chinese Translation**: The poem and end ~~credits~~ include a Chinese translation enabled by default. To switch back to English, go to **Settings → Resource Packs** and uncheck this mod’s **built-in resource pack**.
-
-## How to Use
-
-* Play to yourself: `/endpoem`
-* Play to a target: `/endpoem <target>` (e.g., `@p` / `@a` / player name)
-
-## Notes
-
-* **Do not abuse the command to attack or harass other players.**
-
-## Requirements
-
-* **Minecraft**: 1.21.8
-* **Fabric Loader**: ≥ 0.17.0
-* **Fabric API**: ≥ 0.130.0+1.21.8
-
-— Enjoy revisiting Minecraft’s legendary ending!
+Endpoem is a Fabric mod for replaying and customizing Minecraft's End Poem. The current Fabric source and build configuration are kept directly at the repository root.

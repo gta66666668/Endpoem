@@ -1,0 +1,11 @@
+# Gradle and IDE output
+.gradle/
+build/
+out/
+run/
+.idea/
+*.iml
+
+# Keep the wrapper binary, but not generated release jars.
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
