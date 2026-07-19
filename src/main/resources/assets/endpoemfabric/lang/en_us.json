@@ -25,7 +25,7 @@
   "text.autoconfig.endpoemfabric.option.backgroundScale": "Scaling and Edge Crop",
   "text.autoconfig.endpoemfabric.option.backgroundScale.@Tooltip": "The left button changes image fitting. The right button crops the selected percentage from each edge.",
   "text.autoconfig.endpoemfabric.option.backgroundFile": "Custom Background Image",
-  "text.autoconfig.endpoemfabric.option.backgroundFile.@Tooltip": "Name the image background. PNG, JPG, JPEG, BMP, GIF (first frame), and TGA are supported; then click Reload.",
+  "text.autoconfig.endpoemfabric.option.backgroundFile.@Tooltip": "Name the image background. PNG, JPG, JPEG, BMP, and GIF (first frame) are supported; then click Reload.",
   "text.autoconfig.endpoemfabric.background_mode.vanilla": "Vanilla End Portal",
   "text.autoconfig.endpoemfabric.background_mode.black": "Black",
   "text.autoconfig.endpoemfabric.background_mode.purple": "Dark Purple Gradient",
