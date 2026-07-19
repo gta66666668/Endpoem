@@ -68,6 +68,25 @@ public final class EndpoemConfigManager {
     private static void sanitize(EndpoemConfig value) {
         value.permissionLevel = clamp(value.permissionLevel, 0, 4);
         value.cooldownSeconds = clamp(value.cooldownSeconds, 0, 3600);
+        value.backgroundMode = sanitizeBackgroundMode(value.backgroundMode);
+        value.backgroundScale = sanitizeBackgroundScale(value.backgroundScale);
+    }
+
+    private static String sanitizeBackgroundMode(String value) {
+        return switch (value == null ? "" : value) {
+            case EndpoemConfig.BACKGROUND_BLACK,
+                 EndpoemConfig.BACKGROUND_PURPLE,
+                 EndpoemConfig.BACKGROUND_CUSTOM -> value;
+            default -> EndpoemConfig.BACKGROUND_VANILLA;
+        };
+    }
+
+    private static String sanitizeBackgroundScale(String value) {
+        return switch (value == null ? "" : value) {
+            case EndpoemConfig.BACKGROUND_SCALE_CONTAIN,
+                 EndpoemConfig.BACKGROUND_SCALE_STRETCH -> value;
+            default -> EndpoemConfig.BACKGROUND_SCALE_COVER;
+        };
     }
 
     private static int clamp(int value, int min, int max) {

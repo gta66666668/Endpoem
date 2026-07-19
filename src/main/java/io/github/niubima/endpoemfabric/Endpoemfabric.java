@@ -1,6 +1,7 @@
 package io.github.niubima.endpoemfabric;
 
 import io.github.niubima.endpoemfabric.config.EndpoemConfigManager;
+import io.github.niubima.endpoemfabric.network.PermissionLevelNetworking;
 import io.github.niubima.endpoemfabric.stats.EndpoemStats;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -15,6 +16,7 @@ public final class Endpoemfabric implements ModInitializer {
     public void onInitialize() {
         EndpoemConfigManager.load();
         EndpoemStats.register();
+        PermissionLevelNetworking.register();
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
                 io.github.niubima.endpoemfabric.commands.EndpoemfabricCommands.register(dispatcher));
