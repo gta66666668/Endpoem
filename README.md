@@ -1,3 +1,5 @@
+https://modrinth.com/mod/endpoem
+
 # Endpoem
 
 适用于 Fabric 的 Minecraft 终末之诗重播与自定义模组。
