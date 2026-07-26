@@ -37,6 +37,9 @@ dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    // Keep MP3 support self-contained: JLayer is a small, single nested decoder jar.
+    implementation "javazoom:jlayer:1.0.1"
+    include "javazoom:jlayer:1.0.1"
     implementation("com.terraformersmc:modmenu:${project.modmenu_version}") {
         transitive = false
     }
