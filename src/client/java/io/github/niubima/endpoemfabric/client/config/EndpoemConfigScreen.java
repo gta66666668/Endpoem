@@ -4,6 +4,7 @@ import com.mojang.brigadier.tree.CommandNode;
 import io.github.niubima.endpoemfabric.Endpoemfabric;
 import io.github.niubima.endpoemfabric.client.CustomEndPoem;
 import io.github.niubima.endpoemfabric.client.CustomEndPoemBackground;
+import io.github.niubima.endpoemfabric.client.CustomEndPoemMusic;
 import io.github.niubima.endpoemfabric.config.EndpoemConfig;
 import io.github.niubima.endpoemfabric.config.EndpoemConfigManager;
 import io.github.niubima.endpoemfabric.network.PermissionLevelNetworking;
@@ -29,6 +30,8 @@ public final class EndpoemConfigScreen extends Screen {
     private static final int TAB_HEIGHT = 20;
     private static final int CONTROL_WIDTH = 174;
     private static final int CONTROL_HEIGHT = 20;
+    private static final int COMPACT_CONTROL_GAP = 4;
+    private static final int COMPACT_CONTROL_WIDTH = (CONTROL_WIDTH - COMPACT_CONTROL_GAP * 2) / 3;
     private static final int TEXT_COLOR = 0xFFFFFFFF;
     private static final int DESCRIPTION_COLOR = 0xFFAAAAAA;
     private static final int SECTION_COLOR = 0xFFFFE0A0;
@@ -118,19 +121,14 @@ public final class EndpoemConfigScreen extends Screen {
             );
         } else if (selectedCategory == ConfigCategory.BACKGROUND) {
             y = addSection(y, Component.translatable("text.autoconfig.endpoemfabric.category.background"));
-            y = addCycleRow(
-                    Component.translatable("text.autoconfig.endpoemfabric.option.backgroundMode"),
-                    Component.translatable("text.autoconfig.endpoemfabric.option.backgroundMode.@Tooltip"),
-                    y,
-                    backgroundModeText(config.backgroundMode),
-                    () -> cycleBackgroundMode(config.backgroundMode)
-            );
+            y = addBackgroundModeRow(y, config.backgroundMode, config.showEndPoemVignette);
             if (EndpoemConfig.BACKGROUND_CUSTOM.equals(config.backgroundMode)) {
                 y = addBackgroundLayoutRow(y, config.backgroundScale, config.backgroundCropPercent);
                 addBackgroundFileRow(y);
             }
         } else if (selectedCategory == ConfigCategory.PLAYBACK) {
             y = addSection(y, Component.translatable("text.autoconfig.endpoemfabric.category.playback"));
+            y = addBackgroundMusicRow(y, config.backgroundMusic);
             y = addCycleRow(
                     Component.translatable("text.autoconfig.endpoemfabric.option.scrollSpeed"),
                     Component.translatable("text.autoconfig.endpoemfabric.option.scrollSpeed.@Tooltip"),
@@ -274,6 +272,71 @@ public final class EndpoemConfigScreen extends Screen {
         return y + rowHeight;
     }
 
+    private int addBackgroundMusicRow(int y, String currentMusic) {
+        Component description = Component.translatable(
+                EndpoemConfig.BACKGROUND_MUSIC_CUSTOM.equals(currentMusic)
+                        ? "text.autoconfig.endpoemfabric.option.backgroundMusic.custom.@Tooltip"
+                        : "text.autoconfig.endpoemfabric.option.backgroundMusic.@Tooltip"
+        );
+        int rowHeight = addLabelAndDescription(
+                Component.translatable("text.autoconfig.endpoemfabric.option.backgroundMusic"),
+                description,
+                y
+        );
+        if (EndpoemConfig.BACKGROUND_MUSIC_CUSTOM.equals(currentMusic)) {
+            addRenderableWidget(Button.builder(
+                            backgroundMusicText(currentMusic),
+                            button -> cycleBackgroundMusic(currentMusic)
+                    )
+                    .bounds(controlX, y, COMPACT_CONTROL_WIDTH, CONTROL_HEIGHT)
+                    .build());
+            addRenderableWidget(Button.builder(
+                            Component.translatable("text.autoconfig.endpoemfabric.button.open_music_folder"),
+                            button -> openMusicFolder()
+                    )
+                    .bounds(controlX + COMPACT_CONTROL_WIDTH + COMPACT_CONTROL_GAP, y,
+                            COMPACT_CONTROL_WIDTH, CONTROL_HEIGHT)
+                    .build());
+            addRenderableWidget(Button.builder(
+                            Component.translatable("text.autoconfig.endpoemfabric.button.reload_music"),
+                            button -> reloadCustomMusic()
+                    )
+                    .bounds(controlX + (COMPACT_CONTROL_WIDTH + COMPACT_CONTROL_GAP) * 2, y,
+                            CONTROL_WIDTH - (COMPACT_CONTROL_WIDTH + COMPACT_CONTROL_GAP) * 2,
+                            CONTROL_HEIGHT)
+                    .build());
+        } else {
+            addRenderableWidget(Button.builder(
+                            backgroundMusicText(currentMusic),
+                            button -> cycleBackgroundMusic(currentMusic)
+                    )
+                    .bounds(controlX, y, CONTROL_WIDTH, CONTROL_HEIGHT)
+                    .build());
+        }
+        return y + rowHeight;
+    }
+
+    private int addBackgroundModeRow(int y, String currentMode, boolean showVignette) {
+        int rowHeight = addLabelAndDescription(
+                Component.translatable("text.autoconfig.endpoemfabric.option.backgroundMode"),
+                Component.translatable("text.autoconfig.endpoemfabric.option.backgroundMode.@Tooltip"),
+                y
+        );
+        addRenderableWidget(Button.builder(
+                        compactBackgroundModeText(currentMode),
+                        button -> cycleBackgroundMode(currentMode)
+                )
+                .bounds(controlX, y, 84, CONTROL_HEIGHT)
+                .build());
+        addRenderableWidget(Button.builder(
+                        vignetteText(showVignette),
+                        button -> toggleEndPoemVignette(showVignette)
+                )
+                .bounds(controlX + 90, y, 84, CONTROL_HEIGHT)
+                .build());
+        return y + rowHeight;
+    }
+
     private int addBackgroundLayoutRow(int y, String scaleMode, int cropPercent) {
         int rowHeight = addLabelAndDescription(
                 Component.translatable("text.autoconfig.endpoemfabric.option.backgroundScale"),
@@ -395,10 +458,27 @@ public final class EndpoemConfigScreen extends Screen {
         rebuildWidgets();
     }
 
+    private void openMusicFolder() {
+        CustomEndPoemMusic.initialize();
+        Util.getPlatform().openPath(CustomEndPoemMusic.getDirectory());
+    }
+
+    private void reloadCustomMusic() {
+        setCustomMusicLoadStatus(CustomEndPoemMusic.reload());
+        rebuildWidgets();
+    }
+
     private void setBackgroundLoadStatus(boolean loaded) {
         status = Component.translatable(loaded
                 ? "text.autoconfig.endpoemfabric.status.background_loaded"
                 : "text.autoconfig.endpoemfabric.status.background_missing");
+        statusColor = loaded ? TEXT_COLOR : ERROR_COLOR;
+    }
+
+    private void setCustomMusicLoadStatus(boolean loaded) {
+        status = Component.translatable(loaded
+                ? "text.autoconfig.endpoemfabric.status.music_loaded"
+                : "text.autoconfig.endpoemfabric.status.music_missing");
         statusColor = loaded ? TEXT_COLOR : ERROR_COLOR;
     }
 
@@ -419,6 +499,11 @@ public final class EndpoemConfigScreen extends Screen {
         if (EndpoemConfig.BACKGROUND_CUSTOM.equals(nextMode)) {
             setBackgroundLoadStatus(CustomEndPoemBackground.reload());
         }
+        rebuildWidgets();
+    }
+
+    private void toggleEndPoemVignette(boolean showVignette) {
+        updateConfig(config -> config.showEndPoemVignette = !showVignette);
         rebuildWidgets();
     }
 
@@ -455,6 +540,22 @@ public final class EndpoemConfigScreen extends Screen {
         }
         float nextSpeed = SCROLL_SPEED_PRESETS[(nearest + 1) % SCROLL_SPEED_PRESETS.length];
         updateConfig(config -> config.scrollSpeedMultiplier = nextSpeed);
+        rebuildWidgets();
+    }
+
+    private void cycleBackgroundMusic(String currentMusic) {
+        String nextMusic = switch (currentMusic) {
+            case EndpoemConfig.BACKGROUND_MUSIC_CREDITS -> EndpoemConfig.BACKGROUND_MUSIC_END;
+            case EndpoemConfig.BACKGROUND_MUSIC_END -> EndpoemConfig.BACKGROUND_MUSIC_DRAGON;
+            case EndpoemConfig.BACKGROUND_MUSIC_DRAGON -> EndpoemConfig.BACKGROUND_MUSIC_MENU;
+            case EndpoemConfig.BACKGROUND_MUSIC_MENU -> EndpoemConfig.BACKGROUND_MUSIC_CUSTOM;
+            default -> EndpoemConfig.BACKGROUND_MUSIC_CREDITS;
+        };
+        updateConfig(config -> config.backgroundMusic = nextMusic);
+        clearStatus();
+        if (EndpoemConfig.BACKGROUND_MUSIC_CUSTOM.equals(nextMusic)) {
+            setCustomMusicLoadStatus(CustomEndPoemMusic.reload());
+        }
         rebuildWidgets();
     }
 
@@ -501,14 +602,14 @@ public final class EndpoemConfigScreen extends Screen {
         return Component.translatable(value ? "options.on" : "options.off");
     }
 
-    private static Component backgroundModeText(String mode) {
+    private static Component compactBackgroundModeText(String mode) {
         String suffix = switch (mode) {
             case EndpoemConfig.BACKGROUND_BLACK -> "black";
             case EndpoemConfig.BACKGROUND_PURPLE -> "purple";
             case EndpoemConfig.BACKGROUND_CUSTOM -> "custom";
             default -> "vanilla";
         };
-        return Component.translatable("text.autoconfig.endpoemfabric.background_mode." + suffix);
+        return Component.translatable("text.autoconfig.endpoemfabric.background_mode_compact." + suffix);
     }
 
     private static Component backgroundScaleText(String scale) {
@@ -520,9 +621,28 @@ public final class EndpoemConfigScreen extends Screen {
         return Component.translatable("text.autoconfig.endpoemfabric.background_scale." + suffix);
     }
 
+    private static Component vignetteText(boolean showVignette) {
+        return Component.translatable(
+                showVignette
+                        ? "text.autoconfig.endpoemfabric.background_vignette.on"
+                        : "text.autoconfig.endpoemfabric.background_vignette.off"
+        );
+    }
+
     private static Component scrollSpeedText(float speed) {
         String value = speed == (int) speed ? Integer.toString((int) speed) : Float.toString(speed);
         return Component.literal(value + "×");
+    }
+
+    private static Component backgroundMusicText(String music) {
+        String suffix = switch (music) {
+            case EndpoemConfig.BACKGROUND_MUSIC_END -> "end";
+            case EndpoemConfig.BACKGROUND_MUSIC_DRAGON -> "dragon";
+            case EndpoemConfig.BACKGROUND_MUSIC_MENU -> "menu";
+            case EndpoemConfig.BACKGROUND_MUSIC_CUSTOM -> "custom";
+            default -> "credits";
+        };
+        return Component.translatable("text.autoconfig.endpoemfabric.background_music." + suffix);
     }
 
     private record TextLine(FormattedCharSequence text, int x, int y, int color, boolean centered) {

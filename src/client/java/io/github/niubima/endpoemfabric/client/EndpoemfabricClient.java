@@ -34,6 +34,7 @@ public class EndpoemfabricClient implements ClientModInitializer {
     public void onInitializeClient() {
         CustomEndPoem.initialize();
         CustomEndPoemBackground.initialize();
+        CustomEndPoemMusic.initialize();
 
         FabricLoader.getInstance().getModContainer(Endpoemfabric.MODID).ifPresent(mod -> {
             Identifier packId = Identifier.fromNamespaceAndPath(Endpoemfabric.MODID, "chinese_end_poem");

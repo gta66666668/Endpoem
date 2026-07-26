@@ -71,6 +71,7 @@ public final class EndpoemConfigManager {
         value.backgroundMode = sanitizeBackgroundMode(value.backgroundMode);
         value.backgroundScale = sanitizeBackgroundScale(value.backgroundScale);
         value.backgroundCropPercent = clamp(value.backgroundCropPercent, 0, 40);
+        value.backgroundMusic = sanitizeBackgroundMusic(value.backgroundMusic);
         value.scrollSpeedMultiplier = sanitizeScrollSpeed(value.scrollSpeedMultiplier);
     }
 
@@ -88,6 +89,16 @@ public final class EndpoemConfigManager {
             case EndpoemConfig.BACKGROUND_SCALE_CONTAIN,
                  EndpoemConfig.BACKGROUND_SCALE_STRETCH -> value;
             default -> EndpoemConfig.BACKGROUND_SCALE_COVER;
+        };
+    }
+
+    private static String sanitizeBackgroundMusic(String value) {
+        return switch (value == null ? "" : value) {
+            case EndpoemConfig.BACKGROUND_MUSIC_END,
+                 EndpoemConfig.BACKGROUND_MUSIC_DRAGON,
+                 EndpoemConfig.BACKGROUND_MUSIC_MENU,
+                 EndpoemConfig.BACKGROUND_MUSIC_CUSTOM -> value;
+            default -> EndpoemConfig.BACKGROUND_MUSIC_CREDITS;
         };
     }
 
