@@ -2,6 +2,7 @@ package io.github.niubima.endpoemfabric.client.config;
 
 import com.mojang.brigadier.tree.CommandNode;
 import io.github.niubima.endpoemfabric.Endpoemfabric;
+import io.github.niubima.endpoemfabric.client.CustomCredits;
 import io.github.niubima.endpoemfabric.client.CustomEndPoem;
 import io.github.niubima.endpoemfabric.client.CustomEndPoemBackground;
 import io.github.niubima.endpoemfabric.client.CustomEndPoemMusic;
@@ -11,9 +12,11 @@ import io.github.niubima.endpoemfabric.network.PermissionLevelNetworking;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.WinScreen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Util;
 
@@ -27,6 +30,7 @@ public final class EndpoemConfigScreen extends Screen {
     private static final int[] BACKGROUND_CROP_PRESETS = {0, 5, 10, 15, 20, 25, 30, 35, 40};
     private static final int SECTION_HEIGHT = 18;
     private static final int ROW_MIN_HEIGHT = 38;
+    private static final int COMPACT_ROW_HEIGHT = 30;
     private static final int TAB_HEIGHT = 20;
     private static final int CONTROL_WIDTH = 174;
     private static final int CONTROL_HEIGHT = 20;
@@ -50,15 +54,29 @@ public final class EndpoemConfigScreen extends Screen {
     private int labelX;
     private int controlX;
     private int contentRight;
+    private CreditsFocusTarget pendingCreditsFocus = CreditsFocusTarget.NONE;
+    private Button vanillaCreditsButton;
+    private Button customCreditsPlacementButton;
+    private Button creditsPositionButton;
+    private Button creditsEditorButton;
 
     private EndpoemConfigScreen(Screen parent) {
         this(parent, ConfigCategory.PRIVACY);
     }
 
     private EndpoemConfigScreen(Screen parent, ConfigCategory selectedCategory) {
+        this(parent, selectedCategory, CreditsFocusTarget.NONE);
+    }
+
+    private EndpoemConfigScreen(
+            Screen parent,
+            ConfigCategory selectedCategory,
+            CreditsFocusTarget initialCreditsFocus
+    ) {
         super(Component.translatable("text.autoconfig.endpoemfabric.title"));
         this.parent = parent;
         this.selectedCategory = selectedCategory;
+        pendingCreditsFocus = initialCreditsFocus;
     }
 
     public static Screen create(Screen parent) {
@@ -68,6 +86,10 @@ public final class EndpoemConfigScreen extends Screen {
     @Override
     protected void init() {
         textLines.clear();
+        vanillaCreditsButton = null;
+        customCreditsPlacementButton = null;
+        creditsPositionButton = null;
+        creditsEditorButton = null;
 
         boolean candidate = canRequestCommandSettings();
         if (candidate != commandSettingsCandidate) {
@@ -119,6 +141,26 @@ public final class EndpoemConfigScreen extends Screen {
                     Component.translatable("text.autoconfig.endpoemfabric.option.editCustomEndPoem.@Tooltip"),
                     y
             );
+        } else if (selectedCategory == ConfigCategory.CREDITS) {
+            y = addSection(y, Component.translatable("text.autoconfig.endpoemfabric.category.credits"));
+            y = addCompactBooleanRow(
+                    Component.translatable(
+                            "text.autoconfig.endpoemfabric.option.showVanillaCredits"
+                    ),
+                    Component.translatable(
+                            "text.autoconfig.endpoemfabric.option.showVanillaCredits.@Tooltip"
+                    ),
+                    y,
+                    config.showVanillaCredits,
+                    value -> updateConfig(c -> c.showVanillaCredits = value)
+            );
+            y = addCustomCreditsPlacementRow(
+                    y,
+                    config.customCreditsPlacement,
+                    config.creditsInsertionProgress,
+                    config.showVanillaCredits
+            );
+            addCompactCreditsEditorRow(y);
         } else if (selectedCategory == ConfigCategory.BACKGROUND) {
             y = addSection(y, Component.translatable("text.autoconfig.endpoemfabric.category.background"));
             y = addBackgroundModeRow(y, config.backgroundMode, config.showEndPoemVignette);
@@ -172,6 +214,23 @@ public final class EndpoemConfigScreen extends Screen {
     }
 
     @Override
+    protected void setInitialFocus() {
+        Button target = switch (pendingCreditsFocus) {
+            case VANILLA_CREDITS -> vanillaCreditsButton;
+            case CUSTOM_CREDITS -> customCreditsPlacementButton;
+            case INSERTION_POINT -> creditsPositionButton;
+            case CREDITS_EDITOR -> creditsEditorButton;
+            case NONE -> null;
+        };
+        pendingCreditsFocus = CreditsFocusTarget.NONE;
+        if (target != null && target.active) {
+            super.setInitialFocus(target);
+        } else {
+            super.setInitialFocus();
+        }
+    }
+
+    @Override
     public void tick() {
         super.tick();
         if (canRequestCommandSettings() != commandSettingsCandidate) {
@@ -211,6 +270,7 @@ public final class EndpoemConfigScreen extends Screen {
         List<ConfigCategory> categories = new ArrayList<>();
         categories.add(ConfigCategory.PRIVACY);
         categories.add(ConfigCategory.POEM);
+        categories.add(ConfigCategory.CREDITS);
         categories.add(ConfigCategory.BACKGROUND);
         categories.add(ConfigCategory.PLAYBACK);
         if (commandSettingsAuthorized) {
@@ -218,12 +278,16 @@ public final class EndpoemConfigScreen extends Screen {
         }
 
         int gap = 4;
+        boolean compactLabels = contentWidth - gap * (categories.size() - 1) < categories.size() * 64;
         int tabWidth = (contentWidth - gap * (categories.size() - 1)) / categories.size();
         int tabX = x;
-        for (int i = 0; i < categories.size(); i++) {
-            ConfigCategory category = categories.get(i);
-            int widthForTab = i == categories.size() - 1 ? x + contentWidth - tabX : tabWidth;
-            Button tab = Button.builder(Component.translatable(category.translationKey), button -> {
+        for (int index = 0; index < categories.size(); index++) {
+            ConfigCategory category = categories.get(index);
+            int widthForTab = index == categories.size() - 1 ? x + contentWidth - tabX : tabWidth;
+            Component label = Component.translatable(
+                    compactLabels ? category.compactTranslationKey : category.translationKey
+            );
+            Button tab = Button.builder(label, button -> {
                         selectedCategory = category;
                         rebuildWidgets();
                     })
@@ -256,6 +320,144 @@ public final class EndpoemConfigScreen extends Screen {
                 .bounds(controlX + 90, y, 84, CONTROL_HEIGHT)
                 .build());
         return y + rowHeight;
+    }
+
+    private int addCompactBooleanRow(
+            Component label,
+            Component description,
+            int y,
+            boolean value,
+            Consumer<Boolean> setter
+    ) {
+        textLines.add(new TextLine(label.getVisualOrderText(), labelX, y + 6, TEXT_COLOR, false));
+        Component displayedValue = booleanText(value);
+        Button button = Button.builder(displayedValue, ignored -> {
+                    setter.accept(!value);
+                    rebuildWidgetsWithCreditsFocus(CreditsFocusTarget.VANILLA_CREDITS);
+                })
+                .createNarration(ignored -> optionValueNarration(label, displayedValue))
+                .bounds(controlX, y, CONTROL_WIDTH, CONTROL_HEIGHT)
+                .build();
+        button.setTooltip(Tooltip.create(description));
+        addRenderableWidget(button);
+        vanillaCreditsButton = button;
+        return y + COMPACT_ROW_HEIGHT;
+    }
+
+    private int addCustomCreditsPlacementRow(
+            int y,
+            String currentPlacement,
+            int insertionProgress,
+            boolean showVanillaCredits
+    ) {
+        textLines.add(new TextLine(
+                Component.translatable(
+                                "text.autoconfig.endpoemfabric.option.customCreditsPlacement"
+                        )
+                        .getVisualOrderText(),
+                labelX,
+                y + 6,
+                TEXT_COLOR,
+                false
+        ));
+
+        Component description = Component.translatable(
+                "text.autoconfig.endpoemfabric.option.customCreditsPlacement.@Tooltip"
+        );
+        int gap = 4;
+        int placementButtonWidth = CONTROL_WIDTH - gap - 42;
+        Component placementValue = customCreditsPlacementText(currentPlacement);
+        Component placementLabel = Component.translatable(
+                "text.autoconfig.endpoemfabric.option.customCreditsPlacement"
+        );
+        Button placementButton = Button.builder(
+                        placementValue,
+                        ignored -> cycleCustomCreditsPlacement(
+                                currentPlacement,
+                                showVanillaCredits
+                        )
+                )
+                .createNarration(ignored ->
+                        optionValueNarration(placementLabel, placementValue)
+                )
+                .bounds(controlX, y, placementButtonWidth, CONTROL_HEIGHT)
+                .build();
+        placementButton.setTooltip(Tooltip.create(description));
+        addRenderableWidget(placementButton);
+        customCreditsPlacementButton = placementButton;
+
+        Component positionValue =
+                EndpoemConfig.CREDITS_PLACEMENT_INSIDE_POEM.equals(currentPlacement)
+                        ? Component.literal(
+                                Math.clamp(
+                                        Math.round(insertionProgress / 100.0F),
+                                        1,
+                                        99
+                                ) + "%"
+                        )
+                        : Component.translatable(
+                                "text.autoconfig.endpoemfabric.credits_placement.position"
+                        );
+        Button positionButton = Button.builder(
+                        positionValue,
+                        ignored -> openCreditsPlacementEditor()
+                )
+                .createNarration(ignored -> optionValueNarration(
+                        Component.translatable(
+                                "text.autoconfig.endpoemfabric.credits_placement.position"
+                        ),
+                        positionValue
+                ))
+                .bounds(
+                        controlX + placementButtonWidth + gap,
+                        y,
+                        CONTROL_WIDTH - placementButtonWidth - gap,
+                        CONTROL_HEIGHT
+                )
+                .build();
+        positionButton.active = EndpoemConfig.CREDITS_PLACEMENT_INSIDE_POEM.equals(
+                currentPlacement
+        );
+        positionButton.setTooltip(Tooltip.create(Component.translatable(
+                "text.autoconfig.endpoemfabric.credits_placement.position.@Tooltip"
+        )));
+        addRenderableWidget(positionButton);
+        creditsPositionButton = positionButton;
+        return y + COMPACT_ROW_HEIGHT;
+    }
+
+    private int addCompactCreditsEditorRow(int y) {
+        textLines.add(new TextLine(
+                Component.translatable("text.autoconfig.endpoemfabric.option.editCredits")
+                        .getVisualOrderText(),
+                labelX,
+                y + 6,
+                TEXT_COLOR,
+                false
+        ));
+
+        Component description = Component.translatable(
+                "text.autoconfig.endpoemfabric.option.editCredits.@Tooltip"
+        );
+        Button editButton = Button.builder(
+                        Component.translatable("text.autoconfig.endpoemfabric.button.edit_credits"),
+                        ignored -> openCreditsEditor()
+                )
+                .bounds(controlX, y, 84, CONTROL_HEIGHT)
+                .build();
+        editButton.setTooltip(Tooltip.create(description));
+        addRenderableWidget(editButton);
+        creditsEditorButton = editButton;
+
+        Button externalButton = Button.builder(
+                        Component.translatable("text.autoconfig.endpoemfabric.button.open_external"),
+                        ignored -> openCreditsExternal()
+                )
+                .bounds(controlX + 90, y, 84, CONTROL_HEIGHT)
+                .build();
+        externalButton.setTooltip(Tooltip.create(description));
+        addRenderableWidget(externalButton);
+        return y + COMPACT_ROW_HEIGHT;
     }
 
     private int addCycleRow(
@@ -448,6 +650,35 @@ public final class EndpoemConfigScreen extends Screen {
         rebuildWidgets();
     }
 
+    private void openCreditsEditor() {
+        if (minecraft != null) {
+            minecraft.gui.setScreen(new EndCreditsEditorScreen(
+                    new EndpoemConfigScreen(
+                            parent,
+                            ConfigCategory.CREDITS,
+                            CreditsFocusTarget.CREDITS_EDITOR
+                    )
+            ));
+        }
+    }
+
+    private void openCreditsExternal() {
+        CustomCredits.initialize();
+        Util.getPlatform().openPath(CustomCredits.getPath());
+    }
+
+    private void openCreditsPlacementEditor() {
+        if (minecraft != null) {
+            minecraft.gui.setScreen(new EndCreditsPlacementScreen(
+                    new EndpoemConfigScreen(
+                            parent,
+                            ConfigCategory.CREDITS,
+                            CreditsFocusTarget.INSERTION_POINT
+                    )
+            ));
+        }
+    }
+
     private void openBackgroundFolder() {
         CustomEndPoemBackground.initialize();
         Util.getPlatform().openPath(CustomEndPoemBackground.getDirectory());
@@ -559,6 +790,37 @@ public final class EndpoemConfigScreen extends Screen {
         rebuildWidgets();
     }
 
+    private void cycleCustomCreditsPlacement(
+            String currentPlacement,
+            boolean showVanillaCredits
+    ) {
+        String nextPlacement = switch (currentPlacement) {
+            case EndpoemConfig.CREDITS_PLACEMENT_OFF ->
+                    EndpoemConfig.CREDITS_PLACEMENT_BEFORE_POEM;
+            case EndpoemConfig.CREDITS_PLACEMENT_BEFORE_POEM ->
+                    EndpoemConfig.CREDITS_PLACEMENT_INSIDE_POEM;
+            case EndpoemConfig.CREDITS_PLACEMENT_INSIDE_POEM ->
+                    EndpoemConfig.CREDITS_PLACEMENT_AFTER_POEM;
+            case EndpoemConfig.CREDITS_PLACEMENT_AFTER_POEM ->
+                    showVanillaCredits
+                            ? EndpoemConfig.CREDITS_PLACEMENT_AFTER_VANILLA
+                            : EndpoemConfig.CREDITS_PLACEMENT_OFF;
+            default -> EndpoemConfig.CREDITS_PLACEMENT_OFF;
+        };
+
+        updateConfig(config -> config.customCreditsPlacement = nextPlacement);
+        clearStatus();
+        if (!EndpoemConfig.CREDITS_PLACEMENT_OFF.equals(nextPlacement)) {
+            CustomCredits.initialize();
+        }
+        rebuildWidgetsWithCreditsFocus(CreditsFocusTarget.CUSTOM_CREDITS);
+    }
+
+    private void rebuildWidgetsWithCreditsFocus(CreditsFocusTarget focusTarget) {
+        pendingCreditsFocus = focusTarget;
+        rebuildWidgets();
+    }
+
     private void playEndPoemPreview() {
         if (minecraft == null) {
             return;
@@ -645,20 +907,70 @@ public final class EndpoemConfigScreen extends Screen {
         return Component.translatable("text.autoconfig.endpoemfabric.background_music." + suffix);
     }
 
+    private static Component customCreditsPlacementText(String placement) {
+        String suffix = switch (placement) {
+            case EndpoemConfig.CREDITS_PLACEMENT_BEFORE_POEM -> "before_poem";
+            case EndpoemConfig.CREDITS_PLACEMENT_INSIDE_POEM -> "inside_poem";
+            case EndpoemConfig.CREDITS_PLACEMENT_AFTER_POEM -> "after_poem";
+            case EndpoemConfig.CREDITS_PLACEMENT_AFTER_VANILLA -> "after_vanilla";
+            default -> "off";
+        };
+        return Component.translatable(
+                "text.autoconfig.endpoemfabric.custom_credits_placement." + suffix
+        );
+    }
+
+    private static MutableComponent optionValueNarration(Component label, Component value) {
+        return Component.translatable(
+                "text.autoconfig.endpoemfabric.option_value_narration",
+                label,
+                value
+        );
+    }
+
     private record TextLine(FormattedCharSequence text, int x, int y, int color, boolean centered) {
     }
 
     private enum ConfigCategory {
-        PRIVACY("text.autoconfig.endpoemfabric.category.privacy"),
-        POEM("text.autoconfig.endpoemfabric.category.poem"),
-        BACKGROUND("text.autoconfig.endpoemfabric.category.background"),
-        PLAYBACK("text.autoconfig.endpoemfabric.category.playback"),
-        COMMAND("text.autoconfig.endpoemfabric.category.command");
+        PRIVACY(
+                "text.autoconfig.endpoemfabric.category.privacy",
+                "text.autoconfig.endpoemfabric.category.privacy.compact"
+        ),
+        POEM(
+                "text.autoconfig.endpoemfabric.category.poem",
+                "text.autoconfig.endpoemfabric.category.poem.compact"
+        ),
+        CREDITS(
+                "text.autoconfig.endpoemfabric.category.credits",
+                "text.autoconfig.endpoemfabric.category.credits.compact"
+        ),
+        BACKGROUND(
+                "text.autoconfig.endpoemfabric.category.background",
+                "text.autoconfig.endpoemfabric.category.background.compact"
+        ),
+        PLAYBACK(
+                "text.autoconfig.endpoemfabric.category.playback",
+                "text.autoconfig.endpoemfabric.category.playback.compact"
+        ),
+        COMMAND(
+                "text.autoconfig.endpoemfabric.category.command",
+                "text.autoconfig.endpoemfabric.category.command.compact"
+        );
 
         private final String translationKey;
+        private final String compactTranslationKey;
 
-        ConfigCategory(String translationKey) {
+        ConfigCategory(String translationKey, String compactTranslationKey) {
             this.translationKey = translationKey;
+            this.compactTranslationKey = compactTranslationKey;
         }
+    }
+
+    private enum CreditsFocusTarget {
+        NONE,
+        VANILLA_CREDITS,
+        CUSTOM_CREDITS,
+        INSERTION_POINT,
+        CREDITS_EDITOR
     }
 }

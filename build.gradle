@@ -80,6 +80,29 @@ java {
     withSourcesJar()
 }
 
+// Keep the credits codec regression test dependency-free while still giving it
+// access to classes from the split client source set.
+sourceSets.test.compileClasspath += sourceSets.client.output
+sourceSets.test.runtimeClasspath += sourceSets.client.output
+
+tasks.named("test", Test) {
+    // This project uses a dependency-free JavaExec regression harness below
+    // instead of a JUnit engine, so the standard Test task has nothing to discover.
+    failOnNoDiscoveredTests = false
+}
+
+tasks.register("creditsCodecTest", JavaExec) {
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    description = "Runs ordered custom credits codec regression checks."
+    dependsOn tasks.named("testClasses"), tasks.named("clientClasses")
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "io.github.niubima.endpoemfabric.client.CustomCreditsCodecTest"
+}
+
+tasks.named("check") {
+    dependsOn tasks.named("creditsCodecTest")
+}
+
 def licenseArchiveName = base.archivesName.get()
 jar {
     from("LICENSE") {

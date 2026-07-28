@@ -13,6 +13,11 @@ public class EndpoemConfig {
     public static final String BACKGROUND_MUSIC_DRAGON = "dragon";
     public static final String BACKGROUND_MUSIC_MENU = "menu";
     public static final String BACKGROUND_MUSIC_CUSTOM = "custom";
+    public static final String CREDITS_PLACEMENT_OFF = "off";
+    public static final String CREDITS_PLACEMENT_AFTER_POEM = "after_poem";
+    public static final String CREDITS_PLACEMENT_BEFORE_POEM = "before_poem";
+    public static final String CREDITS_PLACEMENT_INSIDE_POEM = "inside_poem";
+    public static final String CREDITS_PLACEMENT_AFTER_VANILLA = "after_vanilla";
 
     public int permissionLevel = 2;
     public int cooldownSeconds = 10;
@@ -24,5 +29,8 @@ public class EndpoemConfig {
     public boolean showEndPoemVignette = true;
     public String backgroundMusic = BACKGROUND_MUSIC_CREDITS;
     public float scrollSpeedMultiplier = 1.0F;
+    public boolean showVanillaCredits = true;
+    public String customCreditsPlacement = CREDITS_PLACEMENT_OFF;
+    public int creditsInsertionProgress = 5000;
     public boolean migratedOpenConfigKeyToK = false;
 }

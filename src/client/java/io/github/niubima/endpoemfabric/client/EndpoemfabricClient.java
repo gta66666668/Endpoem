@@ -2,6 +2,7 @@ package io.github.niubima.endpoemfabric.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import io.github.niubima.endpoemfabric.Endpoemfabric;
+import io.github.niubima.endpoemfabric.client.config.EndCreditsEditorScreen;
 import io.github.niubima.endpoemfabric.client.config.EndPoemEditorScreen;
 import io.github.niubima.endpoemfabric.client.config.EndpoemConfigScreen;
 import io.github.niubima.endpoemfabric.config.EndpoemConfigManager;
@@ -33,6 +34,7 @@ public class EndpoemfabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         CustomEndPoem.initialize();
+        CustomCredits.initialize();
         CustomEndPoemBackground.initialize();
         CustomEndPoemMusic.initialize();
 
@@ -103,6 +105,7 @@ public class EndpoemfabricClient implements ClientModInitializer {
     private static boolean shouldOpenConfigFrom(Screen screen) {
         return !(screen instanceof EndpoemConfigScreen)
                 && !(screen instanceof EndPoemEditorScreen)
+                && !(screen instanceof EndCreditsEditorScreen)
                 && !(screen.getFocused() instanceof EditBox)
                 && !(screen.getFocused() instanceof MultiLineEditBox);
     }
